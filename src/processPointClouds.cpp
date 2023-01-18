@@ -2,6 +2,7 @@
 
 #include "processPointClouds.h"
 #include <unordered_set>
+#include "quiz/cluster/kdtree.h"
 
 
 //constructor:
@@ -136,7 +137,6 @@ template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SegmentPlaneOwn(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold)
 {
 	auto startTime = std::chrono::steady_clock::now();
-
 	srand(time(NULL));
 
 	// For max iterations
@@ -252,6 +252,47 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
         cloudCluster->is_dense = true;
 
         clusters.push_back(cloudCluster);
+    }
+
+    auto endTime = std::chrono::steady_clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    std::cout << "clustering took " << elapsedTime.count() << " milliseconds and found " << clusters.size() << " clusters" << std::endl;
+
+    return clusters;
+}
+
+
+template<typename PointT>
+std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::ClusteringOwn(typename pcl::PointCloud<PointT>::Ptr cloud, float clusterTolerance, int minSize, int maxSize)
+{
+    // Time clustering process
+    auto startTime = std::chrono::steady_clock::now();
+
+    // Creating the KdTree object for the search method of the extraction
+    KdTree<PointT>* tree = new KdTree<PointT>;
+    for (int i=0; i<cloud->points.size(); i++)
+        tree->insert(cloud->points[i],i);
+
+    // Clustering
+    std::vector<std::vector<int>> cluster_indices = euclideanCluster<PointT>(cloud, tree, clusterTolerance);
+
+    // Extracting relevant clusters
+    std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
+    for(std::vector<int> indices: cluster_indices)
+    {
+        typename pcl::PointCloud<PointT>::Ptr cloudCluster (new pcl::PointCloud<PointT>);
+
+        if((indices.size() >= minSize) && (indices.size() <= maxSize))
+        {
+            for(int index : indices)
+                cloudCluster->points.push_back(cloud->points[index]);
+
+            cloudCluster->width = cloudCluster->points.size();
+            cloudCluster->height = 1;
+            cloudCluster->is_dense = true;
+
+            clusters.push_back(cloudCluster);
+        }
     }
 
     auto endTime = std::chrono::steady_clock::now();
