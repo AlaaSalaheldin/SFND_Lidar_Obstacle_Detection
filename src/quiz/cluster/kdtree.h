@@ -34,7 +34,7 @@ struct KdTree
 		else
 		{
 			// calculate current dim
-			uint cd = depth%2;
+			uint cd = depth%3;
 
 			if(cd == 0)	// use x
 			{
@@ -43,9 +43,16 @@ struct KdTree
 				else
 					insertHelper(&((*node)->right), depth+1, point, id);
 			}
-			else	// use y
+			else if(cd ==1)	// use y
 			{
 				if(point.y < ((*node)->point.y))
+					insertHelper(&((*node)->left), depth+1, point, id);
+				else
+					insertHelper(&((*node)->right), depth+1, point, id);
+			}
+			else // use z
+			{
+				if(point.z < ((*node)->point.z))
 					insertHelper(&((*node)->left), depth+1, point, id);
 				else
 					insertHelper(&((*node)->right), depth+1, point, id);
@@ -64,34 +71,43 @@ struct KdTree
 	{
 		if(node != NULL)
 		{
-			//TODO: add z
 			float nx = node->point.x;
 			float ny = node->point.y;
+			float nz = node->point.z;
 			float tx = target.x;
 			float ty = target.y;
+			float tz = target.z;
 			if ((nx >= (tx - distanceTol)) && (nx <= (tx + distanceTol)) &&
-			    (ny >= (ty - distanceTol)) && (ny <= (ty + distanceTol)))
+			    (ny >= (ty - distanceTol)) && (ny <= (ty + distanceTol)) &&
+				(nz >= (tz - distanceTol)) && (nz <= (tz + distanceTol)))
 			{
 				// ensure node is inside the circle
-				float distance = sqrt((nx-tx)*(nx-tx) + (ny-ty)*(ny-ty));
+				float distance = sqrt((nx-tx)*(nx-tx) + (ny-ty)*(ny-ty) + (nz-tz)*(nz-tz));
 				if(distance <= distanceTol)
 					ids.push_back(node->id);
             }
 
 			// continue with next node
-			uint cd = depth % 2;
-			if(cd == 0)	// use x dimension
+			uint cd = depth % 3;
+			if(cd == 0)	// use x
 			{
 				if((target.x-distanceTol)<node->point.x)
 					searchHelper(target, node->left, depth+1, distanceTol, ids);
 				if((target.x+distanceTol)>node->point.x)
 					searchHelper(target, node->right, depth+1, distanceTol, ids);
 			}
-			else
+			else if(cd == 1) // use y
 			{
 				if((target.y-distanceTol)<node->point.y)
 					searchHelper(target, node->left, depth+1, distanceTol, ids);
 				if((target.y+distanceTol)>node->point.y)
+					searchHelper(target, node->right, depth+1, distanceTol, ids);
+			}
+			else // use z
+			{
+				if((target.z-distanceTol)<node->point.z)
+					searchHelper(target, node->left, depth+1, distanceTol, ids);
+				if((target.z+distanceTol)>node->point.z)
 					searchHelper(target, node->right, depth+1, distanceTol, ids);
 			}
 		}
